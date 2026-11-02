@@ -198,19 +198,26 @@ static bool popcountSupport() noexcept {
 }
 #endif // _MSC_VER
 #ifdef __GNUC__
-#ifndef __arm__
+#if defined(__i386__) || defined(__x86_64__)
+// CPUID is an x86 instruction. Keep this implementation restricted to x86
+// targets; Android ARM and ARM64 compilers must never see this inline asm.
 #define cpuid(func,ax,bx,cx,dx)\
 	__asm__ __volatile__ ("cpuid":\
 	"=a" (ax), "=b" (bx), "=c" (cx), "=d" (dx) : "a" (func));
-#endif
 static bool popcountSupport() noexcept {
-#ifdef __arm__
-	return false;
-#else
-	int cpuInfo[4];
+	int cpuInfo[4] = { 0, 0, 0, 0 };
 	cpuid(0x00000001, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
 	return (cpuInfo[2] & (1 << 23)) != 0;
-#endif
 }
+#elif defined(__aarch64__)
+// AArch64 has the required Advanced SIMD population-count operation.
+static bool popcountSupport() noexcept {
+	return true;
+}
+#else
+static bool popcountSupport() noexcept {
+	return false;
+}
+#endif
 #endif // __GNUC__
 
