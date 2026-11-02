@@ -21,6 +21,16 @@ along with Nemorino.If not, see < http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+#include <cstdlib>
+#include "types.h"
+
+#ifdef EMBED_NEMORINO_NET
+extern "C" {
+extern const unsigned char _binary_nemorino_net_16_nnue_start[];
+extern const unsigned char _binary_nemorino_net_16_nnue_end[];
+}
+#endif
 #include "gsl.h"
 #include "network.h"
 
@@ -30,28 +40,75 @@ namespace nnue {
 	{
 		network_source = "";
 		std::uint32_t size = 0;
-		std::ifstream stream(filename, std::ios::binary);
-		stream.read(reinterpret_cast<char*>(&version), sizeof(version));
-		stream.read(reinterpret_cast<char*>(&hash_value), sizeof(hash_value));
+		std::ifstream file_stream(filename, std::ios::binary);
+		std::istringstream embedded_stream;
+		std::istream* stream = &file_stream;
+		bool using_embedded_network = false;
+
+#ifdef EMBED_NEMORINO_NET
+		if (!file_stream.is_open()) {
+			const std::size_t embedded_size = static_cast<std::size_t>(
+				_binary_nemorino_net_16_nnue_end - _binary_nemorino_net_16_nnue_start);
+			if (embedded_size < 16) {
+				std::cerr << "Embedded Nemorino NNUE network is missing or empty" << std::endl;
+				return false;
+			}
+			std::string embedded_data(
+				reinterpret_cast<const char*>(_binary_nemorino_net_16_nnue_start),
+				embedded_size);
+			embedded_stream.str(std::move(embedded_data));
+			stream = &embedded_stream;
+			using_embedded_network = true;
+			filename = "embedded:nemorino_net_16.nnue";
+		}
+#endif
+
+		stream->read(reinterpret_cast<char*>(&version), sizeof(version));
+		stream->read(reinterpret_cast<char*>(&hash_value), sizeof(hash_value));
+		if (!*stream) {
+			std::cerr << "Unable to read NNUE network header: " << filename << std::endl;
+			return false;
+		}
 		if (hash_value != ID_REDUCED_NETWORK) {
 			if (hash_value == ID_REDUCED_NETWORK_0) {
 				std::cerr << "Network doesn't match engine versions >= 6.03" << std::endl;
 				return false;
 			}
-			std::string nfile = convert(filename);
-			if (nfile.size() > 0) {
-				return Load(nfile);
+			if (using_embedded_network) {
+				std::cerr << "Embedded NNUE network is not in Nemorino's reduced network format" << std::endl;
+				return false;
 			}
-			else return false;
+			std::string nfile = convert(filename);
+			if (nfile.size() > 0)
+				return Load(nfile);
+			return false;
 		}
-		stream.read(reinterpret_cast<char*>(&size), sizeof(size));
-		assert(stream && version == kVersion);
+		if (version != kVersion) {
+			std::cerr << "NNUE network version does not match Nemorino 6.11" << std::endl;
+			return false;
+		}
+		stream->read(reinterpret_cast<char*>(&size), sizeof(size));
+		if (!*stream || size == 0) {
+			std::cerr << "Invalid NNUE architecture section" << std::endl;
+			return false;
+		}
 		architecture.resize(size);
-		stream.read(&architecture.at(0), size);
+		stream->read(&architecture.at(0), size);
+		if (!*stream) {
+			std::cerr << "Truncated NNUE architecture section" << std::endl;
+			return false;
+		}
 		nn.reset(static_cast<network*>(std_aligned_alloc(alignof(network), sizeof(network))));
+		if (!nn) {
+			std::cerr << "Unable to allocate aligned NNUE network memory" << std::endl;
+			return false;
+		}
 		std::memset(nn.get(), 0, sizeof(network));
-		nn->ReadParameters(stream);
-		assert(stream && stream.peek() == std::ios::traits_type::eof());
+		if (!nn->ReadParameters(*stream) || stream->peek() != std::ios::traits_type::eof()) {
+			std::cerr << "NNUE network data is incomplete or has trailing data" << std::endl;
+			nn.reset();
+			return false;
+		}
 		std::cout << filename << " loaded!" << std::endl;
 		network_source = filename;
 		return true;

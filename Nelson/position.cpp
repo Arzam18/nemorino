@@ -595,7 +595,7 @@ void Position::remove(const Square square) noexcept {
 }
 
 void Position::updateCastleFlags(Square fromSquare, Square toSquare) noexcept {
-	assert(GetPieceType(Board.at(fromSquare)) != KING || std::abs((int)from - (int)to) != 2 || Chess960);
+	assert(GetPieceType(Board.at(fromSquare)) != KING || std::abs(static_cast<int>(fromSquare) - static_cast<int>(toSquare)) != 2 || Chess960);
 	if (GetCastlesForColor(SideToMove) != CastleFlag::NoCastles) {
 		if (fromSquare == InitialKingSquare.at(static_cast<int>(SideToMove))) {
 			RemoveCastlingOption(static_cast<CastleFlag>(W0_0 << (2 * static_cast<int>(SideToMove))));
