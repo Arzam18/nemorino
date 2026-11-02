@@ -140,7 +140,7 @@ public:
 	//Search(const Search&) = default;
 	Search& operator=(const Search&) = default;
 	Search(Search&&) = default;
-	Search& operator=(Search&&) = default;
+	Search& operator=(Search&&) = delete;
 	//Main entry point 
 	ValuatedMove Think(Position& pos);
 	//In case of SMP, start Slave threads
