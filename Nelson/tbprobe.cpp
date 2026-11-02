@@ -36,7 +36,9 @@ along with Nemorino.If not, see < http://www.gnu.org/licenses/>.
 #include "tbprobe.h"
 #include "position.h"
 #include "settings.h"
+#ifndef NEMORINO_NO_EMBEDDED_FOUR_MEN
 #include "four_men.h"
+#endif
 
 #ifndef _WIN32
 #include <fcntl.h>
@@ -188,7 +190,11 @@ namespace {
 		std::string fname;
 		void* address = nullptr;
 
+		// The built-in four-man Syzygy tables are optional. Android builds can
+		// omit the large generated four_men.h while retaining external Syzygy
+		// tablebase probing through the configured filesystem path.
 		inline static std::unordered_map<std::string, void*> four_men_map = {
+#ifndef NEMORINO_NO_EMBEDDED_FOUR_MEN
 			{ "KBBvK.rtbw", &KBBvK_rtbw }, { "KBBvK.rtbz", &KBBvK_rtbz }, { "KBNvK.rtbw", &KBNvK_rtbw }, { "KBNvK.rtbz", &KBNvK_rtbz },
 			{ "KBPvK.rtbw", &KBPvK_rtbw }, { "KBPvK.rtbz", &KBPvK_rtbz }, { "KBvK.rtbw", &KBvK_rtbw }, { "KBvK.rtbz", &KBvK_rtbz },
 			{ "KBvKB.rtbw", &KBvKB_rtbw }, { "KBvKB.rtbz", &KBvKB_rtbz }, { "KBvKN.rtbw", &KBvKN_rtbw }, { "KBvKN.rtbz", &KBvKN_rtbz },
@@ -207,6 +213,7 @@ namespace {
 			{ "KRvK.rtbw", &KRvK_rtbw }, { "KRvK.rtbz", &KRvK_rtbz }, { "KRvKB.rtbw", &KRvKB_rtbw }, { "KRvKB.rtbz", &KRvKB_rtbz },
 			{ "KRvKN.rtbw", &KRvKN_rtbw }, { "KRvKN.rtbz", &KRvKN_rtbz }, { "KRvKP.rtbw", &KRvKP_rtbw }, { "KRvKP.rtbz", &KRvKP_rtbz },
 			{ "KRvKR.rtbw", &KRvKR_rtbw }, { "KRvKR.rtbz", &KRvKR_rtbz }
+#endif
 		};
 
 	public:
