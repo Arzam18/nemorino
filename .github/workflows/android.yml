@@ -14,6 +14,7 @@ jobs:
   build:
     name: Android ARM64 NEON Dotprod (embedded NNUE)
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout Nemorino source
         uses: actions/checkout@v4
@@ -23,6 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           if [[ -n "${ANDROID_NDK_LATEST_HOME:-}" && -d "$ANDROID_NDK_LATEST_HOME" ]]; then
             NDK="$ANDROID_NDK_LATEST_HOME"
           elif [[ -n "${ANDROID_NDK_HOME:-}" && -d "$ANDROID_NDK_HOME" ]]; then
@@ -31,10 +33,12 @@ jobs:
             SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
             NDK="$(find "$SDK/ndk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
           fi
+
           if [[ -z "${NDK:-}" || ! -d "$NDK" ]]; then
             echo "Android NDK not found on this runner" >&2
             exit 1
           fi
+
           echo "ndk=$NDK" >> "$GITHUB_OUTPUT"
           echo "Using NDK: $NDK"
 
@@ -42,31 +46,55 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p "$RUNNER_TEMP/nemorino-net"
+
           curl --fail --location --retry 3 --retry-delay 2 \
             'https://sourceforge.net/projects/chess-engines-for-android/files/Nemorino_6.11.zip/download' \
             -o "$RUNNER_TEMP/nemorino-net/Nemorino_6.11.zip"
+
           echo '6ce1c702bf4aac89d3a2defa1eac918895a6c0220d5f3d80725906b98c3b4a44  '"$RUNNER_TEMP/nemorino-net/Nemorino_6.11.zip" | sha256sum --check
+
           python3 - <<'PY'
-          import pathlib, zipfile
-          archive = pathlib.Path(__import__('os').environ['RUNNER_TEMP']) / 'nemorino-net/Nemorino_6.11.zip'
+          import pathlib
+          import zipfile
+          import os
+
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'nemorino-net/Nemorino_6.11.zip'
+
           with zipfile.ZipFile(archive) as z:
-              matches = [n for n in z.namelist() if pathlib.PurePosixPath(n).name == 'nemorino_net_16.nnue']
+              matches = [
+                  n for n in z.namelist()
+                  if pathlib.PurePosixPath(n).name == 'nemorino_net_16.nnue'
+              ]
+
               if len(matches) != 1:
-                  raise SystemExit(f'Expected exactly one nemorino_net_16.nnue in package; found {len(matches)}: {matches}')
+                  raise SystemExit(
+                      f'Expected exactly one nemorino_net_16.nnue; found {len(matches)}: {matches}'
+                  )
+
               target = pathlib.Path('build/embedded/nemorino_net_16.nnue')
               target.parent.mkdir(parents=True, exist_ok=True)
               target.write_bytes(z.read(matches[0]))
+
               print(f'Extracted {matches[0]} ({target.stat().st_size} bytes)')
+
           if target.stat().st_size < 1024 * 1024:
               raise SystemExit('NNUE network is unexpectedly small')
-          version = int.from_bytes(target.read_bytes()[0:4], 'little')
-          network_hash = int.from_bytes(target.read_bytes()[4:8], 'little')
+
+          data = target.read_bytes()
+          version = int.from_bytes(data[0:4], 'little')
+          network_hash = int.from_bytes(data[4:8], 'little')
+
           print(f'NNUE header: version=0x{version:08x}, hash=0x{network_hash:08x}')
+
           if version != 0x7AF32F17:
-              raise SystemExit('Network version does not match this Nemorino 6.11 source')
+              raise SystemExit('Network version does not match Nemorino 6.11 source')
+
           if network_hash != 0x1C4DFD37:
-              raise SystemExit('Network is not in Nemorino 6.11 reduced-network format; refusing to embed')
+              raise SystemExit('Network is not in Nemorino 6.11 reduced-network format')
+
+          print('NNUE network validation successful.')
           PY
 
       - name: Build Nemorino ARM64 executable
@@ -75,18 +103,29 @@ jobs:
           ANDROID_NDK: ${{ steps.ndk.outputs.ndk }}
         run: |
           set -euo pipefail
+
           TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           CXX="$TOOLCHAIN/aarch64-linux-android24-clang++"
           OBJCOPY="$TOOLCHAIN/llvm-objcopy"
+
           if [[ ! -x "$CXX" || ! -x "$OBJCOPY" ]]; then
             echo "Required Android NDK compiler or llvm-objcopy is missing" >&2
             exit 1
           fi
+
           cd build/embedded
-          "$OBJCOPY" -I binary -O elf64-littleaarch64 -B aarch64 \
-            nemorino_net_16.nnue nemorino_embedded_network.o
+
+          "$OBJCOPY" \
+            -I binary \
+            -O elf64-littleaarch64 \
+            -B aarch64 \
+            nemorino_net_16.nnue \
+            nemorino_embedded_network.o
+
           cd ../..
+
           mkdir -p build/bin
+
           SOURCES=(
             Nelson/board.cpp
             Nelson/book.cpp
@@ -104,31 +143,92 @@ jobs:
             Nelson/tbprobe.cpp
             Nelson/network.cpp
           )
-          for source in "${SOURCES[@]}"; do
-            [[ -f "$source" ]] || { echo "Missing source file: $source" >&2; exit 1; }
-          done
-          "$CXX" \
-            -std=c++17 -O3 -DNDEBUG -pthread -flto \
-            -march=armv8.2-a+dotprod -mtune=cortex-a76 \
-            -DNO_POPCOUNT -DPOSIXALIGNEDALLOC -DEMBED_NEMORINO_NET \
-            -DNEMORINO_NO_EMBEDDED_FOUR_MEN \
-            -ffunction-sections -fdata-sections \
-            "${SOURCES[@]}" build/embedded/nemorino_embedded_network.o \
-            -Wl,--gc-sections -Wl,--build-id=none \
-            -static-libstdc++ -o build/bin/nemorino-6.11-android-arm64
-          file build/bin/nemorino-6.11-android-arm64
-          readelf -h build/bin/nemorino-6.11-android-arm64 | grep -E 'Class:|Machine:'
-          readelf -s build/bin/nemorino-6.11-android-arm64 | grep -E '_binary_nemorino_net_16_nnue_(start|end)' || true
-          ls -lh build/bin/nemorino-6.11-android-arm64 build/embedded/nemorino_net_16.nnue
 
-      - name: UCI smoke test (Android emulator not required)
+          for source in "${SOURCES[@]}"; do
+            [[ -f "$source" ]] || {
+              echo "Missing source file: $source" >&2
+              exit 1
+            }
+          done
+
+          "$CXX" \
+            -std=c++17 \
+            -O3 \
+            -DNDEBUG \
+            -pthread \
+            -flto \
+            -march=armv8.2-a+dotprod \
+            -mtune=cortex-a76 \
+            -DNO_POPCOUNT \
+            -DPOSIXALIGNEDALLOC \
+            -DEMBED_NEMORINO_NET \
+            -DNEMORINO_NO_EMBEDDED_FOUR_MEN \
+            -ffunction-sections \
+            -fdata-sections \
+            "${SOURCES[@]}" \
+            build/embedded/nemorino_embedded_network.o \
+            -Wl,--gc-sections \
+            -Wl,--build-id=none \
+            -static-libstdc++ \
+            -o build/bin/nemorino-6.11-android-arm64
+
+          echo "Executable information:"
+          file build/bin/nemorino-6.11-android-arm64
+
+          readelf -hW build/bin/nemorino-6.11-android-arm64
+
+          ls -lh \
+            build/bin/nemorino-6.11-android-arm64 \
+            build/embedded/nemorino_net_16.nnue
+
+      - name: Verify ARM64 executable and embedded NNUE
         shell: bash
         run: |
           set -euo pipefail
-          # Confirm the embedded object symbols survived linking and the executable is AArch64.
-          readelf -s build/bin/nemorino-6.11-android-arm64 | grep -q '_binary_nemorino_net_16_nnue_start'
-          readelf -h build/bin/nemorino-6.11-android-arm64 | grep -q 'AArch64'
-          echo 'ARM64 executable and embedded NNUE symbols verified.'
+
+          BIN="build/bin/nemorino-6.11-android-arm64"
+
+          echo "Checking executable architecture..."
+
+          readelf -hW "$BIN" | grep -q 'AArch64' || {
+            echo "Executable is not AArch64" >&2
+            exit 1
+          }
+
+          echo "Checking embedded NNUE symbols using wide symbol output..."
+
+          SYMBOLS="$(readelf -sW "$BIN")"
+
+          START_SYMBOL="_binary_nemorino_net_16_nnue_start"
+          END_SYMBOL="_binary_nemorino_net_16_nnue_end"
+
+          START_ADDR="$(printf '%s\n' "$SYMBOLS" | awk -v s="$START_SYMBOL" '$NF == s {print $2; exit}')"
+          END_ADDR="$(printf '%s\n' "$SYMBOLS" | awk -v s="$END_SYMBOL" '$NF == s {print $2; exit}')"
+
+          if [[ -z "$START_ADDR" || -z "$END_ADDR" ]]; then
+            echo "Embedded NNUE symbols were not found!" >&2
+            printf '%s\n' "$SYMBOLS" | grep '_binary_' || true
+            exit 1
+          fi
+
+          python3 - "$START_ADDR" "$END_ADDR" <<'PY'
+          import sys
+
+          start = int(sys.argv[1], 16)
+          end = int(sys.argv[2], 16)
+          size = end - start
+
+          print(f'Embedded NNUE start: 0x{start:x}')
+          print(f'Embedded NNUE end:   0x{end:x}')
+          print(f'Embedded NNUE size:  {size:,} bytes')
+
+          if size < 1024 * 1024:
+              raise SystemExit('Embedded NNUE size is unexpectedly small')
+
+          print('Embedded NNUE size verification successful.')
+          PY
+
+          echo "ARM64 executable and embedded NNUE verified."
 
       - name: Upload engine
         uses: actions/upload-artifact@v4
