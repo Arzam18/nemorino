@@ -9,33 +9,43 @@ Nemorino is a UCI chess engine.
 * Standard Chess and Chess960
 * Multi Core support (Shared Hash Table)
 * Multi PV analysis mode
-* CECP support (experimental - all testing is done using UCI)
-##### UCI parameters: #####
+* Support of NNUE based evaluation
+
+#### UCI parameters: ####
 - **UCI_Chess960:**     If set to true engine will play according to Chess960 rules (default false)
 - **Hash:**             Size in MBytes used for the transposition table (default is 32. Nemorino will use additional memory for other fixed-size hash tables)
 - **Clear Hash:**       Will clear the transposition table
+- **Print Options:**    Outputs all UCI parameter values
 - **MultiPV:**          Number of principal variations shown (default 1)
 - **Threads:**          Maximum number of threads (cores) used (default determined by number of available hardware threads)
 - **Ponder:**           When set to true, engine will continue analysis while waiting for opponent's move (default false)
 - **Contempt:**         Score (in centipawns) for accepting draws. If Contempt > 0 then the engine will avoid draws (default 0)
 - **BookFile:**         Polyglot book file the engine shall use (default "book.bin"). Nemorino doesn't have an own book so far
 - **OwnBook:**          Use Polyglot book, specified by book file (default false)
-- **SyzygyPath:**       Path(es) to directories Syzygy tablebase files can be found. Seperate multiple directories by ';' on windows and by ':' on linux
-- **SyzygyProbeDepth:** Minimum search depth for probing Syzygy Bases. The lower the number, more tablebase lookups will be done, but search speed will decrease (default 8)
-- **MoveOverhead:**     Safety Time(in ms) needed to avoid time-losses (default 100)
+- **SyzygyPath:**       Path(es) to directories where Syzygy tablebase files can be found. Separate multiple directories by ';' on windows and by ':' on linux
+- **SyzygyProbeDepth:** Minimum search depth for probing Syzygy Bases. The lower the number, more tablebase lookups will be done, but search speed will decrease (default 7)
+- **SyzygyProbeLimit:** Use only up to <value>-men Tablebases (default 7)
+- **MoveOverhead:**     Safety Time(in ms) needed to avoid time-losses. 
 - **UCI_Opponent:**     With this command the GUI can send the name, title, elo and if the engine is playing a human or computer to the engine (see [UCI Specification](http://wbec-ridderkerk.nl/html/UCIProtocol.html))
-
+- **EvalFile:**         Path to a NNUE parameter file
+- **UseNNUE:**          When set to false engine uses classic evaluation (default true if default net is available)
 
 ### Installation ###
 Released executables can be downloaded in the **[Download section](https://bitbucket.org/christian_g_nther/nemorino/downloads)**
 
-The current development versions are also available:
-
-* [Main Nemorino dev version](https://s3.eu-central-1.amazonaws.com/nemorinotest/appveyor/nemorino_Release.zip)
-* [Nemorino dev version for old PC without POPCNT support](https://s3.eu-central-1.amazonaws.com/nemorinotest/appveyor/nemorino_ReleaseNoPopcount.zip)
-
 Nemorino doesn't bring it's own UI. So for running it, you need a GUI supporting UCI (like [Arena](http://www.playwitharena.com/)).  
-The engine requires 64-bit Windows.
+
+The engine requires 64-bit Windows. Linux compiles can be easily created by cloning the Repository of Nemorino via
+
+
+	git clone https://bitbucket.org/christian_g_nther/nemorino.git
+
+and then use make
+
+If you want to make use of NNUE Evaluation (recommended) you have to copy the provided Network parameter file (*.nnue) to the working directory of your engine.
+
+Nemorino uses a slightly adapted file format compared to Stockfish, but you can use the netwok parameter files from [Stockfish](https://tests.stockfishchess.org/nns) (and other NNUE engines) as well. Those files
+will be copied and converted automatically at first usage by Nemorino.
 
 ### Internals ###
 
@@ -87,6 +97,14 @@ The engine requires 64-bit Windows.
 *          Several Bugfixes
 *          Replaced Syzygy probing code. Now instead of Fathom library, probing code from Stockfish is used
 
+**6.00:**
+
+*          Support of NNUE (Neural Network used for Evaluation)
+*          Reworked Thread Management
+*          Embedded 4-men Syzygy Tablebases for elementary endgames
+*          Several minor Improvements and Tweaks in Search and Evaluation
+*          Several Bugfixes
+
 ### License ###
 
 [GNU GENERAL PUBLIC LICENSE Version 3](https://www.gnu.org/licenses/gpl-3.0.en.html)
@@ -126,7 +144,7 @@ These are my sources of information I used for my engine:
 * My main source of information: [Chess Programming Wiki](https://chessprogramming.wikispaces.com)
 * [Computer Chess Club Forums](http://talkchess.com/forum/index.php)
 * The code of several Open Source Chess Engines, mainly:
-    * [Stockfish](http://stockfishchess.org/) - I copied board and move representation and some lines of code from Stockfish (marked by source code comments)
+    * [Stockfish](http://stockfishchess.org/) - Nemorino contains copied and adapted code from Stockfish, mainly the Syzygy probing and the NNUE inference code in the files network.h, tbprobe.h and tbprobe.cpp.
     * [Hakkapeliitta](https://github.com/mAarnos/Hakkapeliitta) 
     * [Lozza](http://op12no2.me/toys/lozza/)
     * [Senpai](http://www.chessprogramming.net/senpai/)

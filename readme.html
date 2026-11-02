@@ -3,42 +3,57 @@
 <head>
 </head>
 <body>
-<h1>README</h1>
+<h1 id="readme" style="break-before: avoid;">README</h1>
 <p>Nemorino is a UCI chess engine.</p>
-<h3>Features</h3>
+<h3 id="features">Features</h3>
 <ul>
 <li>Syzygy Tablebase support</li>
 <li>Pondering</li>
 <li>Standard Chess and Chess960</li>
 <li>Multi Core support (Shared Hash Table)</li>
 <li>Multi PV analysis mode</li>
-<li>CECP support (experimental - all testing is done using UCI)</li>
+<li>Support of NNUE based evaluation</li>
 </ul>
-<h5>UCI parameters:</h5>
+<h4 id="uci-parameters">UCI parameters:</h4>
 <ul>
-<li><b>UCI_Chess960:</b>     If set to true engine will play according to Chess960 rules (default false)</li>
-<li><b>Hash:</b>             Size in MBytes used for the transposition table (default is 32. Nemorino will use additional memory for other fixed-size hash tables)</li>
-<li><b>Clear Hash:</b>       Will clear the transposition table</li>
-<li><b>MultiPV:</b>          Number of principal variations shown (default 1)</li>
-<li><b>Threads:</b>          Maximum number of threads (cores) used</li>
-<li><b>Ponder:</b>           When set to true, engine will continue analysis while waiting for opponent's move (default false)</li>
-<li><b>Contempt:</b>         Score (in centipawns) for accepting draws. If Contempt &gt; 0 then the engine will avoid draws (default 0)</li>
-<li><b>BookFile:</b>         Polyglot book file the engine shall use (default "book.bin"). Nemorino doesn't have an own book so far</li>
-<li><b>OwnBook:</b>          Use Polyglot book, specified by book file (default false)</li>
-<li><b>SyzygyPath:</b>       Path(es) to directories Syzygy tablebase files can be found. Seperate multiple directories by ';' on windows and by ':' on linux</li>
-<li><b>SyzygyProbeDepth:</b> Minimum search depth for probing Syzygy Bases. The lower the number, more tablebase lookups will be done, but search speed will decrease (default 8)</li>
-<li><b>MoveOverhead:</b>     Safety Time(in ms) needed to avoid time-losses (default 100) </li>
-<li><b>UCI_Opponent:</b>     With this command the GUI can send the name, title, elo and if the engine is playing a human or computer to the engine (see <a href="http://wbec-ridderkerk.nl/html/UCIProtocol.html">UCI Specification</a>)</li>
+<li><strong>UCI_Chess960:</strong>     If set to true engine will play according to Chess960 rules (default false)</li>
+<li><strong>Hash:</strong>             Size in MBytes used for the transposition table (default is 32. Nemorino will use additional memory for other fixed-size hash tables)</li>
+<li><strong>Clear Hash:</strong>       Will clear the transposition table</li>
+<li><strong>Print Options:</strong>    Outputs all UCI parameter values</li>
+<li><strong>MultiPV:</strong>          Number of principal variations shown (default 1)</li>
+<li><strong>Threads:</strong>          Maximum number of threads (cores) used (default determined by number of available hardware threads)</li>
+<li><strong>Ponder:</strong>           When set to true, engine will continue analysis while waiting for opponent's move (default false)</li>
+<li><strong>Contempt:</strong>         Score (in centipawns) for accepting draws. If Contempt &gt; 0 then the engine will avoid draws (default 0)</li>
+<li><strong>BookFile:</strong>         Polyglot book file the engine shall use (default "book.bin"). Nemorino doesn't have an own book so far</li>
+<li><strong>OwnBook:</strong>          Use Polyglot book, specified by book file (default false)</li>
+<li><strong>SyzygyPath:</strong>       Path(es) to directories where Syzygy tablebase files can be found. Separate multiple directories by ';' on windows and by ':' on linux</li>
+<li><strong>SyzygyProbeDepth:</strong> Minimum search depth for probing Syzygy Bases. The lower the number, more tablebase lookups will be done, but search speed will decrease (default 7)</li>
+<li><strong>SyzygyProbeLimit:</strong> Use only up to <value>-men Tablebases (default 7)</value></li>
+<li><strong>MoveOverhead:</strong>     Safety Time(in ms) needed to avoid time-losses. </li>
+<li><strong>UCI_Opponent:</strong>     With this command the GUI can send the name, title, elo and if the engine is playing a human or computer to the engine (see <a href="http://wbec-ridderkerk.nl/html/UCIProtocol.html">UCI Specification</a>)</li>
+<li><strong>EvalFile:</strong>         Path to a NNUE parameter file</li>
+<li><strong>UseNNUE:</strong>          When set to false engine uses classic evaluation (default true if default net is available)</li>
 </ul>
-<h3>Installation</h3>
-Nemorino doesn't bring it's own UI. So for running it, you need a GUI supporting UCI (like <a href="http://www.playwitharena.com/">Arena</a>).<br>
-The engine requires 64-bit Windows.</p>
-There are 2 executables:
+<h3 id="installation">Installation</h3>
+<p>These archive contains 5 executables (sorted by speed/playing strength in descending order)</p>
 <ul>
-<li><b>Nemorino_5.00_win64.exe</b> is the default and should work on most PCs</li>
-<li><b>Nemorino_5.00_win64-no-popcount.exe</b> should only be used on older PCs with CPUs without POPCNT instruction</li>
+<li><strong>nemorino_6.00_win64_bmi2.exe</strong> For CPUs supporting <a href="https://en.wikipedia.org/wiki/Bit_manipulation_instruction_set#BMI2">BMI2</a></li>
+<li><strong>nemorino_6.00_win64_avx2.exe</strong> For CPUs supporting <a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2">AVX2</a></li>
+<li><strong>nemorino_6.00_win64_sse41.exe</strong> For CPUs supporting <a href="https://en.wikipedia.org/wiki/SSE4">SSE4.1</a></li>
+<li><strong>nemorino_6.00_win64_sse2.exe</strong> For CPUs supporting <a href="https://en.wikipedia.org/wiki/SSE2">SSE2</a></li>
+<li><strong>nemorino_6.00_win64_old_cpu.exe</strong> For most other CPUs</li>
 </ul>
-<h3>Internals</h3>
+Additionally
+<ul>
+<li><strong>nemorino_net_6.nnue</strong> Network parameter file - should be placed in the executables (work) directory</li>
+</ul>
+<p>Nemorino doesn't bring it's own UI. So for running it, you need a GUI supporting UCI (like <a href="http://www.playwitharena.com/">Arena</a>).  </p>
+<p>The engine requires 64-bit Windows. Linux compiles can be easily created by cloning the Repository of Nemorino via</p>
+<pre><code>git clone https://bitbucket.org/christian_g_nther/nemorino.git
+</code></pre>
+<p>and then use make</p>
+<p>Nemorino uses a slightly adapted file format compared to Stockfish, but you can use the network parameter files from <a href="https://tests.stockfishchess.org/nns">Stockfish</a> (and other NNUE engines) as well. Those files will be copied and converted automatically at first usage by Nemorino.</p>
+<h3 id="internals">Internals</h3>
 <ul>
 <li>Bitboard based (using magic bitboards for sliding move generation)</li>
 <li>Principal Variation Search (with Aspiration Windows, Null-Move Pruning, Killermoves, Futility Pruning, Razoring, ...)</li>
@@ -46,80 +61,74 @@ There are 2 executables:
 <li>Special evaluation functions for some endgames</li>
 <li>Copy/Make</li>
 </ul>
-<h3>Version History</h3>
+<h3 id="version-history">Version History</h3>
+<p><strong>1.01:</strong></p>
 <ul>
-    <li>
-        <b>1.01:</b>
-        <ul>
-            <li>Bugfix: rare crashes caused by hash collisions in transposition table</li>
-            <li>Code changes for non-popcount compiles</li>
-        </ul>
-    </li>
-    <li>
-        <b>1.02:</b>
-        <ul>
-            <li>New Parameters: SyzygyProbeDepth and MoveOverhead</li>
-            <li>Bugfix: Handling of EP-Squares in TB probing code</li>
-        </ul>
-    </li>
-    <li>
-        <b>2.00:</b>
-        <ul>
-            <li>Several Improvements in Search: Singular Extensions, Cut Node Extensions, improved IID,..</li>
-            <li>Improved SEE (consider promotions and pinned pieces)</li>
-            <li>Improved King Safety Evaluation</li>
-            <li>Scale down endgame values if there are opposite colored bishops</li>
-            <li>Several minor improvements and clean-ups</li>
-        </ul>
-    </li>
-    <li>
-        <b>2.00a (only bugfixes relevant when running with more than one thread):</b>
-        <ul>
-            <li>Fix for known issue with tablebase access (see <a href="https://github.com/basil00/Fathom/issues/15">https://github.com/basil00/Fathom/issues/15</a>)</li>
-            <li>Fix for other (rare) crashes</li>
-        </ul>
-    </li>
-    <li>
-        <b>3.00:</b>
-        <ul>
-            <li>Refactoring of SMP implementation => Improved stability</li>
-            <li>Several minor improvements in search and move ordering</li>
-        </ul>
-    </li>
-    <li>
-        <b>4.00:</b>
-        <ul>
-            <li>Improved King Safety evaluation</li>
-            <li>Some Improvements when running with many threads</li>
-            <li>Some Evaluation Improvements (added some material imbalance terms, knight center mobility, ... and removed some useless terms)</li>
-        </ul>
-    </li>
-	<li>
-        <b>5.00:</b>
-        <ul>
-            <li>Several minor Improvements especially for King Safety </li>
-            <li>Several Bugfixes</li>
-            <li>Replaced Syzygy probing code. Now instead of Fathom library, probing code from Stockfish is used</li>
-        </ul>
-    </li>
+<li>Bugfix: rare crashes caused by hash collisions in transposition table</li>
+<li>Code changes for non-popcount compiles</li>
 </ul>
-<h3>License</h3>
+<p><strong>1.02:</strong></p>
+<ul>
+<li>New Parameters: SyzygyProbeDepth and MoveOverhead</li>
+<li>Bugfix: Handling of EP-Squares in TB probing code</li>
+</ul>
+<p><strong>2.00:</strong></p>
+<ul>
+<li>Several Improvements in Search: Singular Extensions, Cut Node Extensions, improved IID,..</li>
+<li>Improved SEE (consider promotions and pinned pieces)</li>
+<li>Improved King Safety Evaluation</li>
+<li>Scale down endgame values if there are opposite colored bishops</li>
+<li>Several minor improvements and clean-ups</li>
+</ul>
+<p><strong>2.00a (only bugfixes relevant when running with more than one thread):</strong></p>
+<ul>
+<li>Fix for known issue with tablebase access (see https://github.com/basil00/Fathom/issues/15</li>
+<li>Fix for other (rare) crashes</li>
+</ul>
+<p><strong>3.00:</strong></p>
+<ul>
+<li>Refactoring of SMP implementation =&gt; Improved stability</li>
+<li>Several minor improvements in search and move ordering</li>
+</ul>
+<p><strong>4.00:</strong></p>
+<ul>
+<li>Improved King Safety evaluation</li>
+<li>Some Improvements when running with many threads</li>
+<li>Some Evaluation Improvements (added some material imbalance terms, knight center mobility, ... and removed some useless terms)</li>
+</ul>
+<p><strong>5.00:</strong></p>
+<ul>
+<li>Several minor Improvements especially for King Safety </li>
+<li>Several Bugfixes</li>
+<li>Replaced Syzygy probing code. Now instead of Fathom library, probing code from Stockfish is used</li>
+</ul>
+<p><strong>6.00:</strong></p>
+<ul>
+<li>Support of NNUE (Neural Network used for Evaluation)</li>
+<li>Reworked Thread Management</li>
+<li>Embedded 4-men Syzygy Tablebases for elementary endgames</li>
+<li>Several minor Improvements and Tweaks in Search and Evaluation</li>
+<li>Several Bugfixes</li>
+</ul>
+<h3 id="license">License</h3>
 <p><a href="https://www.gnu.org/licenses/gpl-3.0.en.html">GNU GENERAL PUBLIC LICENSE Version 3</a></p>
-<h3>Remarks</h3>
+<p>Source code is available at <a href="https://bitbucket.org/christian_g_nther/nemorino">Bitbucket</a></p>
+<h3 id="remarks">Remarks</h3>
 <p>I wrote this engine because I wanted to understand, how a chess engine is working. And the best way to learn is to write an engine from scratch by yourself. I first started with C#, but after some time I got the ambition to learn C++.
 Therefore don't expect a lot of new ideas within my code, and neither expect clean and well-structured code. Instead you will find a unique combination of all those ideas explained in the <a href="https://chessprogramming.wikispaces.com">Chess Programming Wiki</a>.</p>
-<h3>Acknowledgements</h3>
+<h3 id="acknowledgements">Acknowledgements</h3>
 <p>These are my sources of information I used for my engine:</p>
 <ul>
-<li>My main source of information: <a href="https://chessprogramming.wikispaces.com">Chess Programming Wiki</a></li>
+<li>My main source of information: <a href="https://www.chessprogramming.org/Main_Page">Chess Programming Wiki</a></li>
 <li><a href="http://talkchess.com/forum/index.php">Computer Chess Club Forums</a></li>
 <li>The code of several Open Source Chess Engines, mainly:<ul>
-<li><a href="http://stockfishchess.org/">Stockfish</a> - I copied board and move representation and some lines of code from Stockfish (marked by source code comments)</li>
+<li><a href="http://stockfishchess.org/">Stockfish</a> - Nemorino contains copied and adapted code from Stockfish, mainly the Syzygy probing and the NNUE inference code in the files network.h, tbprobe.h and tbprobe.cpp.</li>
 <li><a href="https://github.com/mAarnos/Hakkapeliitta">Hakkapeliitta</a> </li>
 <li><a href="http://op12no2.me/toys/lozza/">Lozza</a></li>
 <li><a href="http://www.chessprogramming.net/senpai/">Senpai</a></li>
 </ul>
 </li>
-<li>The blogs of <a href="http://www.chessprogramming.net/">Steve Maughan</a>, <a href="http://macechess.blogspot.de/">Thomas Petzke</a> and <a href="http://mediocrechess.blogspot.de/">Jonatan Pettersson</a>
+<li>The blogs of <a href="http://www.chessprogramming.net/">Steve Maughan</a>, <a href="http://macechess.blogspot.de/">Thomas Petzke</a> and <a href="http://mediocrechess.blogspot.de/">Jonatan Pettersson</a></li>
+</ul>
 </body>
 </html>
